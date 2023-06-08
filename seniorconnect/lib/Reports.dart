@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
 class Report extends StatefulWidget {
@@ -8,69 +10,102 @@ class Report extends StatefulWidget {
 }
 
 class ReportViewPageState extends State<Report> {
+  final scrollControler = ScrollController();
+  List posts= [];
+  bool loadingit =false;
+  int page = 1;
+  @override
+  void initState() {
+    super.initState();
+    scrollControler.addListener(_scrollListener);
+    FetchData();
+  }
   @override
   Widget build(BuildContext context) {
-    var arr = ['Report 1', 'Report 2', 'Report 3', 'Report 4'];
-    var des = [
-      'Description for Report 1',
-      'Description for Report 2',
-      'Description for Report 3',
-      'Description for Report 4'
-    ];
-
     return Scaffold(
+      backgroundColor: Colors.grey,
       appBar: AppBar(
-        title: Text("Medicine Reminder"),
+        title: Text("Repots Pagination"),
       ),
-      body: Container(
-        padding: EdgeInsets.all(10),
-        child: ListView.separated(
-          itemBuilder: (context, index) {
+      body: ListView.builder(
+        controller: scrollControler,
+        padding: EdgeInsets.all(8.0),
+        itemCount: loadingit ? posts.length + 1 :  posts.length,
+          itemBuilder: (context, index){
+          if (index < posts.length){
+            final post = posts[index];
+            final title = post['title']['rendered'];
+            final subtitle = post['seoDescription'];
+
             return Card(
-              shadowColor: Colors.grey.withOpacity(0.5),
-              elevation: 10,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15.0),
-              ),
               child: ListTile(
-                leading: CircleAvatar(
-                  child: Icon(Icons.file_copy_outlined),
-                ),
-                title: Text(
-                  arr[index],
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  des[index],
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                iconColor: Colors.lightGreen,
-                trailing: Column(
-                  children: <Widget>[
-                    Container(
-                      child: IconButton(
-                        icon: Icon(Icons.file_download),
-                        onPressed: () {},
-                      ),
-                      margin: EdgeInsets.only(top: 8),
-                    ),
-                  ],
-                ),
+                leading: CircleAvatar(child: Text('${index +1}')),
+                title: Text('$title'),
+                subtitle: Text('$subtitle'),
+
               ),
             );
-          },
-          itemCount: arr.length,
-          separatorBuilder: (context, index) {
-            return Divider();
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: Icon(Icons.add),
-        backgroundColor: Colors.blue,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+          }
+          else{
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+      })
     );
+  }
+
+
+
+  Future<void> FetchData() async{
+      final  apiUrl = "https://techcrunch.com/wp-json/wp/v2/posts?context=embed&per_page=10&page=$page";
+      final uri = Uri.parse(apiUrl);
+
+      final  response = await http.get(uri);
+
+
+      if (response.statusCode ==200) {
+        final json = jsonDecode(response.body)as List;
+        setState(() {
+          posts = posts + json;
+        });
+
+
+      }
+      else {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Error'),
+              content: Text('Failed to login. Please try again later.'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+
+      }
+
+  }
+
+ Future< void> _scrollListener() async{
+    if(loadingit)return;
+    if (scrollControler.position.pixels == scrollControler.position.maxScrollExtent){
+      setState(() {
+        loadingit = true;
+      });
+ page = page + 1 ;
+await FetchData();
+setState(() {
+  loadingit = false;
+});
+
+    }
+
   }
 }
