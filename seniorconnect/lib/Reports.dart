@@ -58,38 +58,43 @@ class ReportViewPageState extends State<Report> {
 
 
   Future<void> FetchData() async{
-      final  apiUrl = "https://techcrunch.com/wp-json/wp/v2/posts?context=embed&per_page=10&page=$page";
-      final uri = Uri.parse(apiUrl);
+     try{
+       final  apiUrl = "https://techcrunch.com/wp-json/wp/v2/posts?context=embed&per_page=10&page=$page";
+       final deadurl = "https://api.admission.wysax.com/applicant/20?schoolId=2";
+       final uri = Uri.parse(deadurl);
 
-      final  response = await http.get(uri);
-
-
-      if (response.statusCode ==200) {
-        final json = jsonDecode(response.body)as List;
-        setState(() {
-          posts = posts + json;
-        });
+       final  response = await http.get(uri).timeout(Duration(seconds: 1));
 
 
-      }
-      else {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text('Error'),
-              content: Text('Failed to login. Please try again later.'),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
+       if (response.statusCode ==200) {
+         final json = jsonDecode(response.body)as List;
+         setState(() {
+           posts = posts + json;
+         });
 
-      }
+
+       }
+
+     }
+     catch(e){
+       showDialog(
+         context: context,
+         builder: (BuildContext context) {
+           return AlertDialog(
+             title: Text('Error'),
+             content: Text('Failed to fetch data. Please try again later.'),
+             actions: <Widget>[
+               TextButton(
+                 onPressed: () => Navigator.of(context).pop(),
+                 child: Text('OK'),
+               ),
+             ],
+           );
+         },
+       );
+       print('Error: $e');
+
+     }
 
   }
 
